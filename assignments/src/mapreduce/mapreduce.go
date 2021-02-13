@@ -64,6 +64,11 @@ type MapReduce struct {
   Workers map[string]*WorkerInfo 
 
   // add any additional state here
+  nAvailableWorkers int
+  StartWorker chan *WorkerInfo
+  SendArgs chan *DoJobArgs
+  CurrentNMap int
+  CurrentNReduce int
 }
 
 func InitMapReduce(nmap int, nreduce int,
@@ -76,8 +81,15 @@ func InitMapReduce(nmap int, nreduce int,
   mr.alive = true
   mr.registerChannel = make(chan string)
   mr.DoneChannel = make(chan bool)
+  mr.StartWorker = make(chan *WorkerInfo)
+  mr.SendArgs = make(chan *DoJobArgs)
 
   // initialize any additional state here
+
+  mr.Workers = make(map[string]*WorkerInfo)
+
+  mr.CurrentNMap = 0
+  mr.CurrentNReduce = 0
   return mr
 }
 
@@ -124,7 +136,7 @@ func (mr *MapReduce) StartRegistrationServer() {
           conn.Close()
         }()
       } else {
-        DPrintf("RegistrationServer: accept error", err)
+        DPrintf("RegistrationServer: accept error %s", err)
         break
       }
     }
